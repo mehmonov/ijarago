@@ -45,7 +45,12 @@ jobs:
             git pull origin main
           fi
           
+          # Bot papkasini yaratish
+          mkdir -p /home/ijarago/bot
           cd /home/ijarago/bot
+          
+          # Log papkasini yaratish
+          mkdir -p /home/ijarago/bot/logs
           
           # Virtual environment yaratish
           python3 -m venv venv || true
@@ -61,9 +66,11 @@ jobs:
           command=/home/ijarago/bot/venv/bin/python3 app.py
           autostart=true
           autorestart=true
-          stderr_logfile=/home/ijarago/bot/err.log
-          stdout_logfile=/home/ijarago/bot/out.log
-          environment=HOME='/home/ijarago/bot',USER='root'" > /etc/supervisor/conf.d/ijarago_bot.conf
+          stderr_logfile=/home/ijarago/bot/logs/err.log
+          stdout_logfile=/home/ijarago/bot/logs/out.log
+          environment=HOME='/home/ijarago/bot',USER='root'
+          stopasgroup=true
+          killasgroup=true" > /etc/supervisor/conf.d/ijarago_bot.conf
           
           # Supervisor ni qayta yuklash
           supervisorctl reread
@@ -74,8 +81,11 @@ jobs:
           sleep 3
           if supervisorctl status ijarago_bot | grep -q RUNNING; then
             echo "Bot muvaffaqiyatli ishga tushirildi!"
+            echo "Loglarni tekshirish: tail -f /home/ijarago/bot/logs/out.log"
           else
             echo "Bot ishga tushirishda xatolik!"
             supervisorctl status ijarago_bot
-            cat err.log
+            if [ -f "/home/ijarago/bot/logs/err.log" ]; then
+              cat /home/ijarago/bot/logs/err.log
+            fi
           fi
