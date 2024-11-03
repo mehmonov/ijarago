@@ -34,7 +34,7 @@ jobs:
         script: |
           cd /home/
           if [ ! -d "ijarago" ]; then
-            git clone git@github.com:mehmonov/ijarago.git
+            git clone https://github.com/mehmonov/ijarago
           else
             cd /home/ijarago/bot
             git pull origin main
