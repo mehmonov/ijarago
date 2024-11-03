@@ -27,49 +27,67 @@ jobs:
         username: root
         password: gcLTffjQ9-BnKd
         script: |
-          # SSH key sozlash
-          ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+          echo "Deployment boshlandi..."
           
           # Repository papkasiga o'tish
           cd /home/
+          echo "Papkaga o'tildi: /home/"
           
           # Eski jarayonni to'xtatish
           if pgrep -f "python3 app.py"; then
+            echo "Eski bot jarayoni to'xtatilmoqda..."
             pkill -f "python3 app.py"
           fi
           
           # Repository clone/pull
           if [ ! -d "ijarago" ]; then
-            # HTTPS orqali clone qilish
+            echo "Repository clone qilinmoqda..."
             git clone https://github.com/mehmonov/ijarago.git
+            if [ $? -ne 0 ]; then
+              echo "Clone qilishda xatolik!"
+              exit 1
+            fi
           else
-            cd /home/ijarago
+            echo "Mavjud repository yangilanmoqda..."
+            cd ijarago
             git fetch origin main
             git reset --hard origin/main
+            if [ $? -ne 0 ]; then
+              echo "Repository yangilashda xatolik!"
+              exit 1
+            fi
           fi
           
           # Bot papkasiga o'tish
+          echo "Bot papkasiga o'tilmoqda..."
           cd /home/ijarago/bot || {
-            echo "Bot papkasi topilmadi!"
+            echo "Bot papkasi topilmadi: /home/ijarago/bot"
+            ls -la /home/ijarago/
             exit 1
           }
           
           # Virtual environment yaratish
-          python3 -m venv venv
+          echo "Virtual environment yaratilmoqda..."
+          python3 -m venv venv || true
           source venv/bin/activate
           
           # Asosiy paketlarni o'rnatish
+          echo "Pip yangilanmoqda..."
           pip install --upgrade pip
           
-          # Agar requirements.txt mavjud bo'lsa
-          if [ -f "requirements.txt" ]; then
-            pip install -r requirements.txt
-          else
-            # Asosiy kerakli paketlarni o'rnatish
-            pip install aiogram python-dotenv
-          fi
+          echo "Paketlar o'rnatilmoqda..."
+          pip install aiogram python-dotenv
           
           # Botni ishga tushirish
-          echo "Botni ishga tushirish..."
+          echo "Bot ishga tushirilmoqda..."
           nohup python3 app.py > bot.log 2>&1 &
-          echo "Bot ishga tushirildi!"
+          
+          # Bot ishga tushganini tekshirish
+          sleep 5
+          if pgrep -f "python3 app.py" > /dev/null; then
+            echo "Bot muvaffaqiyatli ishga tushirildi!"
+          else
+            echo "Bot ishga tushirishda xatolik!"
+            cat bot.log
+            exit 1
+          fi
