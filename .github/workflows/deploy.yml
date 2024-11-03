@@ -8,12 +8,6 @@ on:
     types:
       - closed
 
-env:
-  HOST: "94.198.217.12"        # Server IP manzili
-  USERNAME: "root"           # Server foydalanuvchi nomi
-  PROJECT_NAME: "ijarago" # Loyiha papka nomi
-  REPO_URL: "https://github.com/mehmonov/ijarago"
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -34,27 +28,25 @@ jobs:
     - name: Deploy to server
       uses: appleboy/ssh-action@master
       with:
-        host: ${{ env.HOST }}
-        username: ${{ env.USERNAME }}
+        host: "94.198.217.12"
+        username: "root"
         password: "1234"    # Bu yerga to'g'ridan-to'g'ri parolni yozish mumkin
         script: |
           cd /home/
-          if [ ! -d "${{ env.PROJECT_NAME }}" ]; then
-            git clone ${{ env.REPO_URL }} ${{ env.PROJECT_NAME }}
+          if [ ! -d "ijarago" ]; then
+            git clone https://github.com/mehmonov/ijarago.git
           else
-            cd /home/${{ env.PROJECT_NAME }}/bot
+            cd /home/ijarago/bot
             git pull origin main
           fi
-          cd /home/${{ env.PROJECT_NAME }}/bot
+          cd /home/ijarago/bot
           python3 -m venv venv
           source venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
           
-          # Bot jarayonini qayta ishga tushirish
           if pgrep -f "python3 main.py"; then
             pkill -f "python3 main.py"
           fi
           
-          # Botni orqa fonda ishga tushirish
           nohup python3 main.py > bot.log 2>&1 &
