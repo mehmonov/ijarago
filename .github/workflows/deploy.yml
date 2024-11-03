@@ -45,8 +45,17 @@ jobs:
           pip install --upgrade pip
           # pip install -r requirements.txt
           
-          if pgrep -f "python3 main.py"; then
-            pkill -f "python3 main.py"
+          # Bot jarayonini to'xtatish
+          if [ -f "bot.pid" ]; then
+            kill -9 `cat bot.pid` || true
+            rm bot.pid
           fi
           
-          nohup python3 main.py > bot.log 2>&1 &
+          # Eski bot jarayonlarini tozalash
+          pkill -f "python3 main.py" || true
+          
+          # Botni ishga tushirish va PID ni saqlash
+          nohup python3 main.py > bot.log 2>&1 & echo $! > bot.pid
+          
+          echo "Bot muvaffaqiyatli ishga tushirildi!"
+          echo "Log faylini tekshirish uchun: tail -f bot.log"
