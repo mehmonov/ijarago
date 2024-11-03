@@ -20,10 +20,6 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-
     - name: Deploy to server
       uses: appleboy/ssh-action@master
       with:
@@ -31,20 +27,50 @@ jobs:
         username: root
         password: gcLTffjQ9-BnKd
         script: |
-          eval $(ssh-agent -s)
+          # SSH key sozlash
+          mkdir -p ~/.ssh
           ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+          
+          # Repository papkasiga o'tish
           cd /home/
+          
+          # Eski jarayonni to'xtatish
+          if pgrep -f "python3 app.py"; then
+            pkill -f "python3 app.py"
+          fi
+          
+          # Repository clone/pull
           if [ ! -d "ijarago" ]; then
+            # HTTPS orqali clone qilish
             git clone https://github.com/mehmonov/ijarago.git
           else
             cd /home/ijarago
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
           fi
-          git fetch origin main
-          git reset --hard origin/main
-          cd /home/ijarago/bot
+          
+          # Bot papkasiga o'tish
+          cd /home/ijarago/bot || {
+            echo "Bot papkasi topilmadi!"
+            exit 1
+          }
+          
+          # Virtual environment yaratish
           python3 -m venv venv
           source venv/bin/activate
+          
+          # Asosiy paketlarni o'rnatish
           pip install --upgrade pip
-          pip install -r requirements.txt
+          
+          # Agar requirements.txt mavjud bo'lsa
+          if [ -f "requirements.txt" ]; then
+            pip install -r requirements.txt
+          else
+            # Asosiy kerakli paketlarni o'rnatish
+            pip install aiogram python-dotenv
+          fi
+          
+          # Botni ishga tushirish
+          echo "Botni ishga tushirish..."
           nohup python3 app.py > bot.log 2>&1 &
+          echo "Bot ishga tushirildi!"
