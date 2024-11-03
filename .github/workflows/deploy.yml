@@ -33,10 +33,16 @@ jobs:
           cd /home/
           echo "Papkaga o'tildi: /home/"
           
-          # Eski jarayonni to'xtatish
-          if pgrep -f "python3 app.py"; then
+          # Eski jarayonni to'xtatish (xatosiz)
+          if pgrep -f "python3 app.py" > /dev/null; then
             echo "Eski bot jarayoni to'xtatilmoqda..."
-            pkill -f "python3 app.py"
+            pkill -f "python3 app.py" || true
+            sleep 2
+          fi
+          
+          # PID faylini tekshirish va tozalash
+          if [ -f "/home/ijarago/bot/bot.pid" ]; then
+            rm /home/ijarago/bot/bot.pid
           fi
           
           # Repository clone/pull
@@ -51,41 +57,31 @@ jobs:
             echo "Mavjud repository yangilanmoqda..."
             cd ijarago
             git fetch origin main
-            git reset --hard origin/main
-            if [ $? -ne 0 ]; then
-              echo "Repository yangilashda xatolik!"
-              exit 1
-            fi
+            git reset --hard origin/main || git pull origin main
           fi
           
           # Bot papkasiga o'tish
-          echo "Bot papkasiga o'tilmoqda..."
-          cd /home/ijarago/bot || {
-            echo "Bot papkasi topilmadi: /home/ijarago/bot"
-            ls -la /home/ijarago/
-            exit 1
-          }
+          cd /home/ijarago/bot || mkdir -p /home/ijarago/bot
+          echo "Bot papkasiga o'tildi"
           
           # Virtual environment yaratish
-          echo "Virtual environment yaratilmoqda..."
           python3 -m venv venv || true
           source venv/bin/activate
           
           # Asosiy paketlarni o'rnatish
-          echo "Pip yangilanmoqda..."
           pip install --upgrade pip
-          
-          echo "Paketlar o'rnatilmoqda..."
           pip install aiogram python-dotenv
           
           # Botni ishga tushirish
           echo "Bot ishga tushirilmoqda..."
           nohup python3 app.py > bot.log 2>&1 &
+          echo $! > bot.pid
           
           # Bot ishga tushganini tekshirish
-          sleep 5
-          if pgrep -f "python3 app.py" > /dev/null; then
+          sleep 3
+          if ps -p $(cat bot.pid) > /dev/null; then
             echo "Bot muvaffaqiyatli ishga tushirildi!"
+            exit 0
           else
             echo "Bot ishga tushirishda xatolik!"
             cat bot.log
