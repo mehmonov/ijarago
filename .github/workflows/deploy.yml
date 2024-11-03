@@ -37,16 +37,15 @@ jobs:
           if [ ! -d "${{ secrets.PROJECT_NAME }}" ]; then
             git clone ${{ secrets.REPO_URL }} ${{ secrets.PROJECT_NAME }}
           else
-            cd /home/${{ secrets.PROJECT_NAME }}
+            cd /home/${{ secrets.PROJECT_NAME }}/bot
             git pull origin main
           fi
-          cd /home/${{ secrets.PROJECT_NAME }}
+          cd /home/${{ secrets.PROJECT_NAME }}/bot
           python3 -m venv venv
           source venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
           
-          # Bot jarayonini qayta ishga tushirish
           if pgrep -f "python3 main.py"; then
             pkill -f "python3 main.py"
           fi
