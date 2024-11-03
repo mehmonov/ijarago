@@ -1,9 +1,10 @@
-name: Telegram bot deploy
+name: Deploy to Timeweb
 
 on:
   push:
     branches:
       - main
+      - master
   pull_request:
     types:
       - closed
@@ -20,90 +21,50 @@ jobs:
       with:
         python-version: '3.10'
 
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install wheel
+        pip install Cython
+        pip install -r requirements.txt
+
     - name: Deploy to server
       uses: appleboy/ssh-action@master
       with:
         host: 94.198.217.12
         username: root
-        password: gcLTffjQ9-BnKd
+        password: ${{ secrets.SSH_PASSWORD }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          echo "Deployment boshlandi..."
-          
-          # Repository papkasiga o'tish
-          cd /home/
-          
-          # Git config dan foydalanish
-          export GIT_SSH_COMMAND="ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no"
-          
-          # Repository clone/pull
+          eval $(ssh-agent -s)
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" | ssh-add -
+          ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+          cd /home
           if [ ! -d "ijarago" ]; then
-            echo "Repository clone qilinmoqda..."
             git clone git@github.com:mehmonov/ijarago.git
           else
-            echo "Mavjud repository yangilanmoqda..."
-            cd ijarago
-            git fetch origin main
-            git reset --hard origin/main
+            cd /home/ijarago
+            git pull origin main
           fi
-          
-          # Repository ichidagi fayllarni ko'rish
-          echo "Repository ichidagi fayllar:"
-          ls -la /home/ijarago/
-          
-          # Bot papkasini tozalash va yaratish
-          rm -rf /home/ijarago/bot/*
-          mkdir -p /home/ijarago/bot
-          
-          # Repository fayllarini bot papkasiga ko'chirish
-          cp -r /home/ijarago/* /home/ijarago/bot/ 2>/dev/null || true
-          cp -r /home/ijarago/.env /home/ijarago/bot/ 2>/dev/null || true
-          
-          # Log papkasini yaratish
-          mkdir -p /home/ijarago/bot/logs
-          
-          # Virtual environment yaratish
-          cd /home/ijarago/bot
+          cd /home/ijarago
+          git fetch origin main
+          git reset --hard origin/main
           python3 -m venv venv
           source venv/bin/activate
-          
-          # Paketlarni o'rnatish
           pip install --upgrade pip
-          pip install aiogram python-dotenv
+          pip install wheel
+          pip install Cython
+          pip install -r requirements.txt
           
-          echo "Bot papkasidagi fayllar:"
-          ls -la /home/ijarago/bot/
-          
-          # app.py mavjudligini tekshirish
-          if [ ! -f "app.py" ]; then
-            echo "ERROR: app.py fayli topilmadi!"
-            echo "Repository ichidagi fayllar:"
-            ls -la /home/ijarago/
-            exit 1
-          fi
-          
-          # Supervisor konfiguratsiyasini yaratish
-          echo "[program:ijarago_bot]
-          directory=/home/ijarago/bot
-          command=/home/ijarago/bot/venv/bin/python3 app.py
+          # Setup and restart supervisor
+          echo '[program:ijarago]
+          directory=/home/ijarago
+          command=/home/ijarago/venv/bin/python main.py
           autostart=true
           autorestart=true
-          stderr_logfile=/home/ijarago/bot/logs/err.log
-          stdout_logfile=/home/ijarago/bot/logs/out.log
-          environment=HOME='/home/ijarago/bot',USER='root'
-          stopasgroup=true
-          killasgroup=true" > /etc/supervisor/conf.d/ijarago_bot.conf
-          
-          # Supervisor ni qayta yuklash
+          stderr_logfile=/var/log/ijarago.err.log
+          stdout_logfile=/var/log/ijarago.out.log
+          user=root' > /etc/supervisor/conf.d/ijarago.conf
           supervisorctl reread
           supervisorctl update
-          supervisorctl restart ijarago_bot
-          
-          # Bot holatini tekshirish
-          sleep 3
-          if supervisorctl status ijarago_bot | grep -q RUNNING; then
-            echo "Bot muvaffaqiyatli ishga tushirildi!"
-          else
-            echo "Bot ishga tushirishda xatolik!"
-            supervisorctl status ijarago_bot
-            cat /home/ijarago/bot/logs/err.log
-          fi
+          supervisorctl restart ijarago
