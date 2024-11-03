@@ -30,11 +30,11 @@ jobs:
       with:
         host: "94.198.217.12"
         username: "root"
-        password: "1234"    # Bu yerga to'g'ridan-to'g'ri parolni yozish mumkin
+        password: "1234"    
         script: |
           cd /home/
           if [ ! -d "ijarago" ]; then
-            git clone https://github.com/mehmonov/ijarago.git
+            git clone git@github.com:mehmonov/ijarago.git
           else
             cd /home/ijarago/bot
             git pull origin main
