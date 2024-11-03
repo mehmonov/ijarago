@@ -42,10 +42,10 @@ jobs:
           if [ ! -d "${{ env.PROJECT_NAME }}" ]; then
             git clone ${{ env.REPO_URL }} ${{ env.PROJECT_NAME }}
           else
-            cd /home/${{ env.PROJECT_NAME }}
+            cd /home/${{ env.PROJECT_NAME }}/bot
             git pull origin main
           fi
-          cd /home/${{ env.PROJECT_NAME }}
+          cd /home/${{ env.PROJECT_NAME }}/bot
           python3 -m venv venv
           source venv/bin/activate
           pip install --upgrade pip
