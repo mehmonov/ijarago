@@ -84,7 +84,8 @@ async def show_page(message: types.Message, state: FSMContext):
     # Sahifa haqida ma'lumot
     await message.answer(
         f"📋 {data['district']} tumani, {current_page}-sahifa\n"
-        f"Jami: {len(apartments)} ta e'lon"
+        f"Jami: {len(apartments)} ta e'lon",
+        reply_markup=main_renter_keyboard
     )
     
     for apartment in page_apartments:
