@@ -42,32 +42,42 @@ jobs:
           else
             echo "Mavjud repository yangilanmoqda..."
             cd ijarago
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
           fi
           
-          # Bot papkasini yaratish
+          # Repository ichidagi fayllarni ko'rish
+          echo "Repository ichidagi fayllar:"
+          ls -la /home/ijarago/
+          
+          # Bot papkasini tozalash va yaratish
+          rm -rf /home/ijarago/bot/*
           mkdir -p /home/ijarago/bot
           
           # Repository fayllarini bot papkasiga ko'chirish
-          cp -r /home/ijarago/* /home/ijarago/bot/
-          cd /home/ijarago/bot
+          cp -r /home/ijarago/* /home/ijarago/bot/ 2>/dev/null || true
+          cp -r /home/ijarago/.env /home/ijarago/bot/ 2>/dev/null || true
           
           # Log papkasini yaratish
           mkdir -p /home/ijarago/bot/logs
           
           # Virtual environment yaratish
-          python3 -m venv venv || true
+          cd /home/ijarago/bot
+          python3 -m venv venv
           source venv/bin/activate
           
           # Paketlarni o'rnatish
           pip install --upgrade pip
           pip install aiogram python-dotenv
           
+          echo "Bot papkasidagi fayllar:"
+          ls -la /home/ijarago/bot/
+          
           # app.py mavjudligini tekshirish
           if [ ! -f "app.py" ]; then
             echo "ERROR: app.py fayli topilmadi!"
-            echo "Mavjud fayllar:"
-            ls -la
+            echo "Repository ichidagi fayllar:"
+            ls -la /home/ijarago/
             exit 1
           fi
           
@@ -92,11 +102,8 @@ jobs:
           sleep 3
           if supervisorctl status ijarago_bot | grep -q RUNNING; then
             echo "Bot muvaffaqiyatli ishga tushirildi!"
-            echo "Loglarni tekshirish: tail -f /home/ijarago/bot/logs/out.log"
           else
             echo "Bot ishga tushirishda xatolik!"
             supervisorctl status ijarago_bot
-            if [ -f "/home/ijarago/bot/logs/err.log" ]; then
-              cat /home/ijarago/bot/logs/err.log
-            fi
+            cat /home/ijarago/bot/logs/err.log
           fi
