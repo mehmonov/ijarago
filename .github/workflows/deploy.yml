@@ -23,7 +23,6 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
 
     - name: Deploy to server
       uses: appleboy/ssh-action@master
@@ -41,11 +40,11 @@ jobs:
             cd /home/ijarago
             git pull origin main
           fi
-          cd /home/ijarago/
           git fetch origin main
           git reset --hard origin/main
+          cd /home/ijarago/bot
           python3 -m venv venv
           source venv/bin/activate
           pip install --upgrade pip
-          
+          pip install -r requirements.txt
           nohup python3 app.py > bot.log 2>&1 &
