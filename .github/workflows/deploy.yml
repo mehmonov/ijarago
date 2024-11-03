@@ -46,7 +46,7 @@ jobs:
             cd /home/ijarago
             git pull origin main
           fi
-          cd /home/ijarago
+          cd /home/ijarago/bot
           git fetch origin main
           git reset --hard origin/main
           python3 -m venv venv
