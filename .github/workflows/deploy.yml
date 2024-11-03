@@ -30,7 +30,7 @@ jobs:
       with:
         host: "94.198.217.12"
         username: "root"
-        password: "1234"    
+        password: "gcLTffjQ9-BnKd"    
         script: |
           cd /home/
           if [ ! -d "ijarago" ]; then
