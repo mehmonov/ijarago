@@ -47,6 +47,9 @@ jobs:
           
           # Bot papkasini yaratish
           mkdir -p /home/ijarago/bot
+          
+          # Repository fayllarini bot papkasiga ko'chirish
+          cp -r /home/ijarago/* /home/ijarago/bot/
           cd /home/ijarago/bot
           
           # Log papkasini yaratish
@@ -59,6 +62,14 @@ jobs:
           # Paketlarni o'rnatish
           pip install --upgrade pip
           pip install aiogram python-dotenv
+          
+          # app.py mavjudligini tekshirish
+          if [ ! -f "app.py" ]; then
+            echo "ERROR: app.py fayli topilmadi!"
+            echo "Mavjud fayllar:"
+            ls -la
+            exit 1
+          fi
           
           # Supervisor konfiguratsiyasini yaratish
           echo "[program:ijarago_bot]
