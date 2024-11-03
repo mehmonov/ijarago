@@ -1,4 +1,4 @@
-name: Deploy Telegram Bot
+name: Telegram bot deploy
 
 on:
   push:
@@ -23,39 +23,29 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        # pip install -r requirements.txt
+        pip install -r requirements.txt
 
     - name: Deploy to server
       uses: appleboy/ssh-action@master
       with:
-        host: "94.198.217.12"
-        username: "root"
-        password: "gcLTffjQ9-BnKd"    
+        host: 94.198.217.12
+        username: root
+        password: gcLTffjQ9-BnKd
         script: |
+          eval $(ssh-agent -s)
+          ssh-keyscan -H github.com >> ~/.ssh/known_hosts
           cd /home/
           if [ ! -d "ijarago" ]; then
-            git clone https://github.com/mehmonov/ijarago
+            git clone git@github.com:mehmonov/ijarago.git
           else
-            cd /home/ijarago/bot
+            cd /home/ijarago
             git pull origin main
           fi
-          cd /home/ijarago/bot
+          cd /home/ijarago
+          git fetch origin main
+          git reset --hard origin/main
           python3 -m venv venv
           source venv/bin/activate
           pip install --upgrade pip
-          # pip install -r requirements.txt
           
-          # Bot jarayonini to'xtatish
-          if [ -f "bot.pid" ]; then
-            kill -9 `cat bot.pid` || true
-            rm bot.pid
-          fi
-          
-          # Eski bot jarayonlarini tozalash
-          pkill -f "python3 main.py" || true
-          
-          # Botni ishga tushirish va PID ni saqlash
-          nohup python3 main.py > bot.log 2>&1 & echo $! > bot.pid
-          
-          echo "Bot muvaffaqiyatli ishga tushirildi!"
-          echo "Log faylini tekshirish uchun: tail -f bot.log"
+          nohup python3 app.py > bot.log 2>&1 &
