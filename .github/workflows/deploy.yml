@@ -31,53 +31,51 @@ jobs:
           
           # Repository papkasiga o'tish
           cd /home/
-          echo "Papkaga o'tildi: /home/"
           
-     
-          # PID faylini tekshirish va tozalash
-          if [ -f "/home/ijarago/bot/bot.pid" ]; then
-            rm /home/ijarago/bot/bot.pid
-          fi
+          # Git config dan foydalanish
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no"
           
           # Repository clone/pull
           if [ ! -d "ijarago" ]; then
             echo "Repository clone qilinmoqda..."
-            git clone https://github.com/mehmonov/ijarago.git
-            if [ $? -ne 0 ]; then
-              echo "Clone qilishda xatolik!"
-              exit 1
-            fi
+            git clone git@github.com:mehmonov/ijarago.git
           else
             echo "Mavjud repository yangilanmoqda..."
             cd ijarago
-            git fetch origin main
-            git reset --hard origin/main || git pull origin main
+            git pull origin main
           fi
           
-          # Bot papkasiga o'tish
-          cd /home/ijarago/bot || mkdir -p /home/ijarago/bot
-          echo "Bot papkasiga o'tildi"
+          cd /home/ijarago/bot
           
           # Virtual environment yaratish
           python3 -m venv venv || true
           source venv/bin/activate
           
-          # Asosiy paketlarni o'rnatish
+          # Paketlarni o'rnatish
           pip install --upgrade pip
           pip install aiogram python-dotenv
           
-          # Botni ishga tushirish
-          echo "Bot ishga tushirilmoqda..."
-          nohup python3 app.py > bot.log 2>&1 &
-          echo $! > bot.pid
+          # Supervisor konfiguratsiyasini yaratish
+          echo "[program:ijarago_bot]
+          directory=/home/ijarago/bot
+          command=/home/ijarago/bot/venv/bin/python3 app.py
+          autostart=true
+          autorestart=true
+          stderr_logfile=/home/ijarago/bot/err.log
+          stdout_logfile=/home/ijarago/bot/out.log
+          environment=HOME='/home/ijarago/bot',USER='root'" > /etc/supervisor/conf.d/ijarago_bot.conf
           
-          # Bot ishga tushganini tekshirish
+          # Supervisor ni qayta yuklash
+          supervisorctl reread
+          supervisorctl update
+          supervisorctl restart ijarago_bot
+          
+          # Bot holatini tekshirish
           sleep 3
-          if ps -p $(cat bot.pid) > /dev/null; then
+          if supervisorctl status ijarago_bot | grep -q RUNNING; then
             echo "Bot muvaffaqiyatli ishga tushirildi!"
-            exit 0
           else
             echo "Bot ishga tushirishda xatolik!"
-            cat bot.log
-            exit 1
+            supervisorctl status ijarago_bot
+            cat err.log
           fi
