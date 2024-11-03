@@ -46,39 +46,23 @@ jobs:
             git reset --hard origin/main
           fi
           
+          # Repository ichidagi fayllarni ko'rish
           echo "Repository ichidagi fayllar:"
-          cd /home/ijarago
-          ls -la
+          ls -la /home/ijarago/
           
-          echo "Repository ichidagi barcha fayllar (rekursiv):"
-          find . -type f
-          
-          # Bot papkasini tayyorlash
-          mkdir -p /home/ijarago/bot
+          # Bot papkasini tozalash va yaratish
           rm -rf /home/ijarago/bot/*
+          mkdir -p /home/ijarago/bot
           
           # Repository fayllarini bot papkasiga ko'chirish
-          if [ -d "/home/ijarago/src" ]; then
-            echo "src papkasidan nusxa ko'chirilmoqda..."
-            cp -r /home/ijarago/src/* /home/ijarago/bot/
-          else
-            echo "Asosiy papkadan nusxa ko'chirilmoqda..."
-            cp -r /home/ijarago/* /home/ijarago/bot/ 2>/dev/null || true
-          fi
-          
-          # .env faylini ko'chirish
-          if [ -f "/home/ijarago/.env" ]; then
-            cp /home/ijarago/.env /home/ijarago/bot/
-          fi
+          cp -r /home/ijarago/* /home/ijarago/bot/ 2>/dev/null || true
+          cp -r /home/ijarago/.env /home/ijarago/bot/ 2>/dev/null || true
           
           # Log papkasini yaratish
           mkdir -p /home/ijarago/bot/logs
           
-          echo "Bot papkasidagi fayllar:"
-          cd /home/ijarago/bot
-          ls -la
-          
           # Virtual environment yaratish
+          cd /home/ijarago/bot
           python3 -m venv venv
           source venv/bin/activate
           
@@ -86,11 +70,14 @@ jobs:
           pip install --upgrade pip
           pip install aiogram python-dotenv
           
+          echo "Bot papkasidagi fayllar:"
+          ls -la /home/ijarago/bot/
+          
           # app.py mavjudligini tekshirish
           if [ ! -f "app.py" ]; then
             echo "ERROR: app.py fayli topilmadi!"
             echo "Repository ichidagi fayllar:"
-            find /home/ijarago -name "app.py"
+            ls -la /home/ijarago/
             exit 1
           fi
           

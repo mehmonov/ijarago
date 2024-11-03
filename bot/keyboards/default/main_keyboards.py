@@ -1,5 +1,24 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 
+
+
+
+def get_district_keyboard() -> ReplyKeyboardMarkup:
+    districts = [
+        "Chilonzor", "Yunusobod", "Mirzo Ulug'bek", 
+        "Yakkasaroy", "Mirobod", "Sergeli", 
+        "Olmazor", "Uchtepa", "Shayxontohur"
+    ]
+    
+    keyboard = []
+    for i in range(0, len(districts), 3):
+        row = districts[i:i+3]
+        keyboard.append([KeyboardButton(text=district) for district in row])
+    
+    return ReplyKeyboardMarkup(
+        keyboard=keyboard,
+        resize_keyboard=True
+    )
 user_type_keyboard = InlineKeyboardMarkup(
     inline_keyboard=[
         [
@@ -60,6 +79,7 @@ confirm_keyboard = ReplyKeyboardMarkup(
     ],
     resize_keyboard=True
 )
+
 
 profile_keyboard = ReplyKeyboardMarkup(
     keyboard=[

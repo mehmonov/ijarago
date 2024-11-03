@@ -96,3 +96,19 @@ class ApartmentQueries:
         WHERE id = $1 RETURNING *
         """
         return await self.execute(sql, apartment_id, is_available, fetchrow=True)
+    
+    async def get_apartment_by_id(self, apartment_id):
+        sql = """
+        SELECT * FROM Apartments WHERE id = $1
+        """
+        return await self.execute(sql, apartment_id, fetchrow=True)
+
+    async def get_apartments_by_district(self, district: str):
+        sql = """
+        SELECT a.*, u.full_name as owner_name, u.username as owner_username 
+        FROM Apartments a 
+        JOIN Users u ON a.owner_id = u.telegram_id 
+        WHERE district = $1 AND is_available = true 
+        ORDER BY created_at DESC
+        """
+        return await self.execute(sql, district, fetch=True)

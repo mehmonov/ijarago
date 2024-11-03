@@ -22,3 +22,4 @@ def get_district_keyboard() -> InlineKeyboardMarkup:
         builder.button(text=district, callback_data=f"district:{district}")
     builder.adjust(3)
     return builder.as_markup()
+

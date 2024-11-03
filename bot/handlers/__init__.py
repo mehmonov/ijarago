@@ -12,6 +12,6 @@ def setup_routers() -> Router:
     # Agar kerak bo'lsa, o'z filteringizni o'rnating
     start.router.message.filter(ChatPrivateFilter(chat_type=["private"]))
 
-    router.include_routers(admin.router, start.router, help.router, echo.router, error_handler.router, apartment_listing.router, apartment_filters.router, apartment_management.router, registration.router)
+    router.include_routers(admin.router, start.router, help.router, error_handler.router, apartment_listing.router, apartment_filters.router, apartment_management.router, registration.router)
 
     return router

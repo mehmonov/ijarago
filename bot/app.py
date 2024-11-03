@@ -40,7 +40,7 @@ async def setup_aiogram(dispatcher: Dispatcher, bot: Bot) -> None:
 async def database_connected():
     # Ma'lumotlar bazasini yaratamiz:
     await db.create()
-    await db.drop_users_table()  # Avval jadvalni o'chiramiz
+    # await db.drop_users_table()  # Avval jadvalni o'chiramiz
 
     await db.create_table_users()
     await db.create_table_apartments()
@@ -57,7 +57,8 @@ async def aiogram_on_startup_polling(dispatcher: Dispatcher, bot: Bot) -> None:
     logger.info("Starting polling")
     await bot.delete_webhook(drop_pending_updates=True)
     await setup_aiogram(bot=bot, dispatcher=dispatcher)
-    await on_startup_notify(bot=bot)
+    await on_startup_notify(bot=bot, db=db)
+    
     await set_default_commands(bot=bot)
 
 

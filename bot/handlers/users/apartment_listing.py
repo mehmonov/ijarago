@@ -2,12 +2,21 @@ from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import InlineKeyboardMarkup
+from aiogram.fsm.state import State, StatesGroup
 
-from utils.validators import validate_price
+from utils.validators import validate_price, validate_rooms
 from states.user_states import ApartmentFilter
 from loader import db
+from keyboards.default.main_keyboards import main_renter_keyboard, get_district_keyboard
 
 router = Router()
+
+# Yangi state qo'shamiz
+class ApartmentListing(StatesGroup):
+    select_district = State()
+    viewing = State()
+
+ITEMS_PER_PAGE = 1  # Har bir sahifada ko'rsatiladigan kvartiralar soni
 
 def create_apartment_keyboard(apartment_id: int):
     builder = InlineKeyboardBuilder()
@@ -20,7 +29,7 @@ def create_apartment_keyboard(apartment_id: int):
 async def format_apartment_info(apartment: dict):
     text = f"🏠 <b>{apartment['rooms']} xonali kvartira</b>\n"
     text += f"📍 <b>Manzil:</b> {apartment['district']}, {apartment['address']}\n"
-    text += f"💰 <b>Narxi:</b> {apartment['price']:,} so'm\n"
+    text += f"💰 <b>Narxi:</b> {apartment['price']:,} dollar\n"
     text += f"📏 <b>Maydoni:</b> {apartment['area']} m²\n"
     text += f"🏢 <b>Qavat:</b> {apartment['floor']}/{apartment['total_floors']}\n"
     text += f"🪑 <b>Mebel:</b> {'Bor' if apartment['has_furniture'] else 'Yoq'}\n"
@@ -30,121 +39,115 @@ async def format_apartment_info(apartment: dict):
     return text
 
 @router.message(F.text == "🏠 Kvartiralarni ko'rish")
-async def show_apartments(message: types.Message):
-    apartments = await db.get_all_available_apartments()
+async def start_viewing_apartments(message: types.Message, state: FSMContext):
+    i_btn = get_district_keyboard()
+    await message.answer("Qaysi tumandagi kvartiralarni ko'rmoqchisiz?", reply_markup=i_btn)
+    await state.set_state(ApartmentListing.select_district)
+
+@router.message(ApartmentListing.select_district)
+async def show_district_apartments(message: types.Message, state: FSMContext):
+    district = message.text
+    
+    # Tanlangan tumandagi kvartiralarni olish
+    apartments = await db.get_apartments_by_district(district)
     
     if not apartments:
-        await message.answer("❌ Hozircha e'lonlar yo'q")
+        await message.answer(
+            f"❌ {district} tumanida hozircha e'lonlar yo'q",
+            reply_markup=main_renter_keyboard
+        )
+        await state.clear()
         return
     
-    for apartment in apartments:
+    # Kvartiralar va sahifa ma'lumotlarini state'ga saqlash
+    await state.update_data(
+        district=district,
+        apartments=apartments,
+        current_page=1,
+        total_pages=(len(apartments) + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE
+    )
+    
+    await show_page(message, state)
+    await state.set_state(ApartmentListing.viewing)
+
+async def show_page(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    current_page = data['current_page']
+    total_pages = data['total_pages']
+    apartments = data['apartments']
+    
+    # Joriy sahifa uchun kvartiralar
+    start_idx = (current_page - 1) * ITEMS_PER_PAGE
+    end_idx = start_idx + ITEMS_PER_PAGE
+    page_apartments = apartments[start_idx:end_idx]
+    
+    # Sahifa haqida ma'lumot
+    await message.answer(
+        f"📋 {data['district']} tumani, {current_page}-sahifa\n"
+        f"Jami: {len(apartments)} ta e'lon"
+    )
+    
+    for apartment in page_apartments:
         photos = await db.get_apartment_photos(apartment['id'])
         media = []
         
         if photos:
             for photo in photos:
                 media.append(types.InputMediaPhoto(media=photo['photo_file_id']))
-            
             await message.answer_media_group(media=media)
+        
+        # Asosiy tugmalar va paginatsiya
+        keyboard = InlineKeyboardBuilder()
+        
+        # Asosiy tugmalar
+        keyboard.row(
+            types.InlineKeyboardButton(text="📞 Bog'lanish", callback_data=f"contact:{apartment['id']}"),
+            types.InlineKeyboardButton(text="📍 Lokatsiya", callback_data=f"location:{apartment['id']}")
+        )
+        
+        # Paginatsiya tugmalari
+        if total_pages > 1:
+            nav_buttons = []
+            if current_page > 1:
+                nav_buttons.append(types.InlineKeyboardButton(text="⬅️ Oldingi", callback_data="prev_page"))
+            nav_buttons.append(types.InlineKeyboardButton(text=f"{current_page}/{total_pages}", callback_data="current_page"))
+            if current_page < total_pages:
+                nav_buttons.append(types.InlineKeyboardButton(text="Keyingi ➡️", callback_data="next_page"))
+            keyboard.row(*nav_buttons)
+        
+        # Yopish tugmasi
+        keyboard.row(types.InlineKeyboardButton(text="❌ Yopish", callback_data="close"))
         
         await message.answer(
             await format_apartment_info(apartment),
-            reply_markup=create_apartment_keyboard(apartment['id']),
+            reply_markup=keyboard.as_markup(),
             parse_mode="HTML"
         )
 
-@router.message(F.text == "🔍 Filter o'rnatish")
-async def start_filter(message: types.Message, state: FSMContext):
-    await message.answer(
-        "Qaysi tumanda kvartira qidiryapsiz?\n"
-        "Masalan: Chilonzor, Yunusobod, ..."
-    )
-    await state.set_state(ApartmentFilter.district)
-
-@router.message(ApartmentFilter.district)
-async def process_filter_district(message: types.Message, state: FSMContext):
-    await state.update_data(district=message.text)
-    await message.answer(
-        "Minimal narxni kiriting (so'm):\n"
-        "Masalan: 2000000"
-    )
-    await state.set_state(ApartmentFilter.min_price)
-
-@router.message(ApartmentFilter.min_price)
-async def process_filter_min_price(message: types.Message, state: FSMContext):
-    price = validate_price(message.text)
-    if not price:
-        await message.answer("❌ Noto'g'ri format. Iltimos, narxni raqamda kiriting:")
-        return
-    
-    await state.update_data(min_price=price)
-    await message.answer(
-        "Maksimal narxni kiriting (so'm):\n"
-        "Masalan: 5000000"
-    )
-    await state.set_state(ApartmentFilter.max_price)
-
-@router.message(ApartmentFilter.max_price)
-async def process_filter_max_price(message: types.Message, state: FSMContext):
-    price = validate_price(message.text)
-    if not price:
-        await message.answer("❌ Noto'g'ri format. Iltimos, narxni raqamda kiriting:")
-        return
-    
+@router.callback_query(F.data == "prev_page")
+async def prev_page(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    if price <= data['min_price']:
-        await message.answer("❌ Maksimal narx minimal narxdan katta bo'lishi kerak:")
-        return
-    
-    await state.update_data(max_price=price)
-    await message.answer("Xonalar sonini kiriting (1-10):")
-    await state.set_state(ApartmentFilter.rooms)
+    if data['current_page'] > 1:
+        await state.update_data(current_page=data['current_page'] - 1)
+        # Eski xabarlarni o'chirish
+        await callback.message.delete()
+        await show_page(callback.message, state)
+    await callback.answer()
 
-@router.message(ApartmentFilter.rooms)
-async def process_filter_rooms(message: types.Message, state: FSMContext):
-    rooms = validate_rooms(message.text)
-    if not rooms:
-        await message.answer("❌ Noto'g'ri format. Iltimos, 1 dan 10 gacha son kiriting:")
-        return
-    
+@router.callback_query(F.data == "next_page")
+async def next_page(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    
-    # Filter natijalarini ko'rsatish
-    apartments = await db.get_apartments_by_filters(
-        min_price=data['min_price'],
-        max_price=data['max_price'],
-        district=data['district'],
-        min_rooms=rooms
-    )
-    
-    if not apartments:
-        await message.answer(
-            "❌ Afsuski, bunday parametrlar bo'yicha kvartiralar topilmadi.",
-            reply_markup=main_renter_keyboard
-        )
-    else:
-        await message.answer(
-            f"✅ {len(apartments)} ta kvartira topildi:",
-            reply_markup=main_renter_keyboard
-        )
-        
-        for apartment in apartments:
-            photos = await db.get_apartment_photos(apartment['id'])
-            media = []
-            
-            if photos:
-                for photo in photos:
-                    media.append(types.InputMediaPhoto(media=photo['photo_file_id']))
-                
-                await message.answer_media_group(media=media)
-            
-            await message.answer(
-                await format_apartment_info(apartment),
-                reply_markup=create_apartment_keyboard(apartment['id']),
-                parse_mode="HTML"
-            )
-    
-    await state.clear()
+    if data['current_page'] < data['total_pages']:
+        await state.update_data(current_page=data['current_page'] + 1)
+        # Eski xabarlarni o'chirish
+        await callback.message.delete()
+        await show_page(callback.message, state)
+    await callback.answer()
+
+@router.callback_query(F.data == "close")
+async def close_apartment(callback: types.CallbackQuery):
+    await callback.message.delete()
+    await callback.answer()
 
 @router.callback_query(F.data.startswith("contact:"))
 async def show_contact(callback: types.CallbackQuery):

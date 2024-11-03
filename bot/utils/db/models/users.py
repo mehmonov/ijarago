@@ -8,8 +8,8 @@ class UserQueries:
         telegram_id BIGINT NOT NULL UNIQUE,
         user_type VARCHAR(20) NOT NULL DEFAULT 'renter' CHECK (user_type IN ('renter', 'landlord')),
         phone VARCHAR(20) NULL,
-        company VARCHAR(255) NULL
-        
+        company VARCHAR(255) NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         """
         await self.execute(sql, execute=True)
@@ -60,3 +60,23 @@ class UserQueries:
         WHERE telegram_id = $1 RETURNING *
         """
         return await self.execute(sql, telegram_id, user_type, fetchrow=True)
+    
+    async def get_users_count(self):
+        sql = "SELECT COUNT(*) FROM Users"
+        return await self.execute(sql, fetchval=True)
+
+    async def get_users_count_last_week(self):
+        sql = "SELECT COUNT(*) FROM Users WHERE created_at >= NOW() - INTERVAL '7 days'"
+        return await self.execute(sql, fetchval=True)
+    
+    async def get_renters_count(self):
+        sql = "SELECT COUNT(*) FROM Users WHERE user_type = 'renter'"
+        return await self.execute(sql, fetchval=True)
+    
+    async def get_landlords_count(self):
+        sql = "SELECT COUNT(*) FROM Users WHERE user_type = 'landlord'"
+        return await self.execute(sql, fetchval=True)
+
+    async def get_apartments_count(self):
+        sql = "SELECT COUNT(*) FROM Apartments"
+        return await self.execute(sql, fetchval=True)
