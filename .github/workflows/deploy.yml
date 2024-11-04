@@ -69,4 +69,4 @@ jobs:
           user=root' > /etc/supervisor/conf.d/ijarago.conf
           supervisorctl reread
           supervisorctl update
-          supervisorctl restart ijarago
+          supervisorctl restart ijarago 
