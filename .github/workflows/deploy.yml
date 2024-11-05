@@ -43,9 +43,9 @@ jobs:
             cd /home/ijarago
             git pull origin main
           fi
-          cd /home/ijarago/bot
-          python3 -m venv venv
-          source venv/bin/activate
-          # pip install -r requirements.txt
-          sudo supervisorctl restart ijago_bot 
+          # cd /home/ijarago
+          # python3 -m venv venv
+          # source venv/bin/activate
+          # # pip install -r requirements.txt
+          # sudo supervisorctl restart ijago_bot 
   
