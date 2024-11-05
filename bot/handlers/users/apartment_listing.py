@@ -29,12 +29,18 @@ def create_apartment_keyboard(apartment_id: int):
 async def format_apartment_info(apartment: dict):
     text = f"🏠 <b>{apartment['rooms']} xonali kvartira</b>\n"
     text += f"📍 <b>Manzil:</b> {apartment['district']}, {apartment['address']}\n"
-    text += f"💰 <b>Narxi:</b> {apartment['price']:,} dollar\n"
+    text += f"💰 <b>Narxi:</b> ${apartment['price']:,}\n"
     text += f"📏 <b>Maydoni:</b> {apartment['area']} m²\n"
     text += f"🏢 <b>Qavat:</b> {apartment['floor']}/{apartment['total_floors']}\n"
     text += f"🪑 <b>Mebel:</b> {'Bor' if apartment['has_furniture'] else 'Yoq'}\n"
-    text += f"👤 <b>Egasi:</b> {apartment['owner_name']}\n\n"
-    text += f"📝 <b>Tavsif:</b>\n{apartment['description']}"
+    
+    # owner_name yoki owner_username borligini tekshirish
+    if 'owner_name' in apartment:
+        text += f"👤 <b>Egasi:</b> {apartment['owner_name']}\n"
+    elif 'owner_username' in apartment:
+        text += f"👤 <b>Egasi:</b> {apartment['owner_username']}\n"
+    
+    text += f"\n📝 <b>Tavsif:</b>\n{apartment.get('description', '')}"
     
     return text
 

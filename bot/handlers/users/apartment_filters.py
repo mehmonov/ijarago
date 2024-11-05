@@ -8,6 +8,8 @@ from utils.validators import validate_price, validate_rooms
 from keyboards.default.main_keyboards import get_district_keyboard
 router = Router()
 from .apartment_listing import format_apartment_info
+from keyboards.inline.apartment_keyboards import create_apartment_keyboard
+
 @router.message(F.text == "🔍 Filter o'rnatish")
 async def start_filter(message: types.Message, state: FSMContext):
     tuman_inb = get_district_keyboard()
@@ -97,11 +99,41 @@ async def show_saved_filters(message: types.Message):
         return
     
     for filter in filters:
+        # O'xshash filterlarni topish
+        similar_filters = await db.find_similar_filters(
+            district=filter['district'],
+            min_rooms=filter['min_rooms'],
+            min_price=filter['min_price'],
+            max_price=filter['max_price'],
+            current_filter_id=filter['id']
+        )
+        
+        # Ushbu filter parametrlari bo'yicha kvartiralarni topish
+        apartments = await db.get_apartments_by_filters(
+            min_price=filter['min_price'],
+            max_price=filter['max_price'],
+            district=filter['district'],
+            min_rooms=filter['min_rooms']
+        )
+        
         text = (
             f"📍 Tuman: {filter['district']}\n"
-            f"💰 Narx: {filter['min_price']:,} - {filter['max_price']:,} so'm\n"
-            f"🏠 Xonalar soni: {filter['min_rooms']}"
+            f"💰 Narx: ${filter['min_price']:,} - ${filter['max_price']:,}\n"
+            f"🏠 Xonalar soni: {filter['min_rooms']}\n\n"
         )
+        
+        # Agar o'xshash filterlar bo'lsa
+        if similar_filters:
+            text += "👥 O'xshash filterlar:\n"
+            for sf in similar_filters:
+                if sf['telegram_id'] != message.from_user.id:
+                    text += f"- {sf['user_name']}: {sf['district']}, "
+                    text += f"${sf['min_price']:,}-${sf['max_price']:,}, "
+                    text += f"{sf['min_rooms']} xona\n"
+        
+        # Agar kvartiralar topilgan bo'lsa
+        if apartments:
+            text += f"\n✅ {len(apartments)} ta mos kvartira topildi!"
         
         keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
             [types.InlineKeyboardButton(text="🔍 Qidirish", callback_data=f"use_filter:{filter['id']}")],
@@ -159,7 +191,6 @@ async def delete_filter_callback(callback: types.CallbackQuery):
         await callback.message.answer("❌ Xatolik yuz berdi. Qaytadan urinib ko'ring.")
     
     await callback.answer()
-
 @router.callback_query(F.data.startswith("use_filter:"))
 async def use_saved_filter(callback: types.CallbackQuery):
     filter_id = int(callback.data.split(":")[1])

@@ -23,3 +23,9 @@ def get_district_keyboard() -> InlineKeyboardMarkup:
     builder.adjust(3)
     return builder.as_markup()
 
+def create_apartment_keyboard(apartment_id: int) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="📞 Bog'lanish", callback_data=f"contact:{apartment_id}")
+    builder.button(text="📍 Lokatsiya", callback_data=f"location:{apartment_id}")
+    builder.adjust(1)
+    return builder.as_markup()

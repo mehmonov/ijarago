@@ -40,3 +40,26 @@ class FilterQueries:
         WHERE id = $1
         """
         return await self.execute(sql, filter_id, fetchrow=True)
+
+    async def find_similar_filters(self, district: str, min_rooms: int, min_price: float, max_price: float, current_filter_id: int = None):
+        sql = """
+        SELECT f.*, u.full_name as user_name, u.telegram_id
+        FROM SavedFilters f
+        JOIN Users u ON f.user_id = u.telegram_id
+        WHERE f.district = $1 
+        AND f.min_rooms = $2
+        AND (
+            ($3 BETWEEN f.min_price AND f.max_price)
+            OR
+            ($4 BETWEEN f.min_price AND f.max_price)
+            OR
+            (f.min_price BETWEEN $3 AND $4)
+        )
+        """
+        params = [district, min_rooms, min_price, max_price]
+        
+        if current_filter_id:
+            sql += " AND f.id != $5"
+            params.append(current_filter_id)
+        
+        return await self.execute(sql, *params, fetch=True)

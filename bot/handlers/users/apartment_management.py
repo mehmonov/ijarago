@@ -1,9 +1,12 @@
 from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
 from aiogram.exceptions import TelegramBadRequest
-from loader import db
+from loader import db, bot
 from utils.validators import validate_price, validate_rooms, validate_floor
 from states.user_states import AddApartment
+from utils.apartment_utils import select_best_apartment
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+
 from keyboards.default.main_keyboards import (
     confirm_keyboard,
     furniture_keyboard,
@@ -137,68 +140,123 @@ async def process_description(message: types.Message, state: FSMContext):
     )
     await state.set_state(AddApartment.photos)
 
-@router.message(AddApartment.photos)
-async def process_photos(message: types.Message, state: FSMContext):
-    # Agar "Yakunlash" tugmasi bosilsa
-    if message.text == "✅ Yakunlash":
-        data = await state.get_data()
-        if not data.get('photos'):
-            await message.answer("❌ Kamida bitta rasm yuklash kerak!")
-            return
-            
-        try:
-            # Kvartira ma'lumotlarini saqlash
-            apartment = await db.add_apartment(
-                owner_id=message.from_user.id,
-                district=data['district'],
-                address=data['address'],
-                rooms=data['rooms'],
-                floor=data['floor'],
-                total_floors=data['total_floors'],
-                price=data['price'],
-                area=data['area'],
-                description=data.get('description'),
-                has_furniture=data['has_furniture']
-            )
-            
-            # Rasmlarni saqlash
-            for photo_id in data['photos']:
-                await db.add_apartment_photo(apartment['id'], photo_id)
-            
-            await message.answer(
-                "✅ Kvartira muvaffaqiyatli qo'shildi!",
-                reply_markup=main_landlord_keyboard
-            )
-            await state.clear()
-            return
-            
-        except Exception as e:
-            await message.answer(
-                "❌ Xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.",
-                reply_markup=main_landlord_keyboard
-            )
-            await state.clear()
-            return
-
-    # Agar rasm yuborilmagan bo'lsa
-    if not message.photo:
-        await message.answer("❌ Iltimos, rasm yuboring yoki '✅ Yakunlash' tugmasini bosing")
-        return
-    
+@router.message(AddApartment.photos, F.photo)
+async def process_photo(message: types.Message, state: FSMContext):
     data = await state.get_data()
     photos = data.get('photos', [])
     
     if len(photos) >= 10:
-        await message.answer("❌ Maksimal 10 ta rasm yuklash mumkin")
+        await message.answer("❌ Maksimum 10 ta rasm yuklash mumkin!")
         return
     
+    # Rasmning file_id sini saqlash
     photos.append(message.photo[-1].file_id)
     await state.update_data(photos=photos)
     
+    # Yuklangan rasmlar sonini ko'rsatish
     await message.answer(
-        f"✅ {len(photos)}-rasm qabul qilindi. Yana rasm yuborishingiz yoki '✅ Yakunlash' tugmasini bosishingiz mumkin",
+        f"✅ {len(photos)} ta rasm yuklandi.\n"
+        "Yana rasm yuborishingiz yoki '✅ Yakunlash' tugmasini bosishingiz mumkin.",
         reply_markup=confirm_keyboard
     )
+
+@router.message(AddApartment.photos, F.text == "✅ Yakunlash")
+async def finish_adding_photos(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    if not data.get('photos'):
+        await message.answer("❌ Kamida bitta rasm yuklash kerak!")
+        return
+            
+    try:
+        # Kvartira ma'lumotlarini saqlash
+        apartment = await db.add_apartment(
+            owner_id=message.from_user.id,
+            district=data['district'],
+            address=data['address'],
+            rooms=data['rooms'],
+            floor=data['floor'],
+            total_floors=data['total_floors'],
+            price=data['price'],
+            area=data['area'],
+            description=data.get('description'),
+            has_furniture=data['has_furniture']
+        )
+        
+        # Rasmlarni saqlash
+        for photo_id in data['photos']:
+            await db.add_apartment_photo(apartment['id'], photo_id)
+        
+        # O'xshash kvartiralarni topish va taqqoslash
+        similar_apartments = await db.get_similar_apartments(
+            district=data['district'],
+            rooms=data['rooms'],
+            price_range=(float(data['price']) * 0.8, float(data['price']) * 1.2)  # ±20% narx oralig'i
+        )
+        
+        # Eng yaxshi kvartira tanlash
+        best_apartment = await select_best_apartment(similar_apartments)
+        
+        # O'xshash filterlarga ega foydalanuvchilarni topish
+        similar_filters = await db.find_similar_filters(
+            district=data['district'],
+            min_rooms=data['rooms'],
+            min_price=data['price'],
+            max_price=data['price']
+        )
+        
+        if similar_filters and best_apartment:
+            media = []
+            photos = await db.get_apartment_photos(best_apartment['id'])
+            if photos:
+                for photo in photos:
+                    media.append(types.InputMediaPhoto(media=photo['photo_file_id']))
+                
+                for filter in similar_filters:
+                    try:
+                        notification_text = (
+                            "🏠 Sizning filteringizga mos eng yaxshi kvartira topildi!\n\n"
+                            f"Siz qidirgan parametrlar:\n"
+                            f"📍 Tuman: {filter['district']}\n"
+                            f"🏠 Xonalar: {filter['min_rooms']}\n"
+                            f"💰 Narx oralig'i: ${filter['min_price']:,} - ${filter['max_price']:,}\n\n"
+                            f"Tavsiya etilgan kvartira:\n"
+                            f"💰 Narxi: ${best_apartment['price']:,}\n"
+                            f"📍 Manzil: {best_apartment['district']}, {best_apartment['address']}\n"
+                            f"🏠 {best_apartment['rooms']} xona, {best_apartment['area']} m²\n"
+                            f"🏢 Qavat: {best_apartment['floor']}/{best_apartment['total_floors']}\n"
+                            f"🪑 Mebel: {'Bor' if best_apartment['has_furniture'] else 'Yoq'}\n\n"
+                            f"📝 Tavsif: {best_apartment.get('description', '')}"
+                        )
+                        
+                        if media:
+                            await bot.send_media_group(filter['telegram_id'], media=media)
+                        
+                        keyboard = InlineKeyboardBuilder()
+                        keyboard.button(text="📞 Bog'lanish", callback_data=f"contact:{best_apartment['id']}")
+                        keyboard.button(text="📍 Lokatsiya", callback_data=f"location:{best_apartment['id']}")
+                        
+                        await bot.send_message(
+                            filter['telegram_id'],
+                            notification_text,
+                            reply_markup=keyboard.as_markup(),
+                            parse_mode="HTML"
+                        )
+                    except Exception as e:
+                        print(f"Xabar yuborishda xatolik: {e}")
+        
+        await message.answer(
+            "✅ Kvartira muvaffaqiyatli qo'shildi!",
+            reply_markup=main_landlord_keyboard
+        )
+        await state.clear()
+        
+    except Exception as e:
+        print(f"Xatolik: {e}")
+        await message.answer(
+            "❌ Xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.",
+            reply_markup=main_landlord_keyboard
+        )
+        await state.clear()
 
 @router.message(F.text == "📋 Mening e'lonlarim")
 async def show_my_apartments(message: types.Message):
@@ -227,7 +285,7 @@ async def show_my_apartments(message: types.Message):
                 media.append(types.InputMediaPhoto(media=photo['photo_file_id']))
             await message.answer_media_group(media=media)
         
-        keyboard = types.InlineKeyboardBuilder()
+        keyboard = InlineKeyboardBuilder()
         keyboard.button(text="🗑 O'chirish", callback_data=f"delete:{apartment['id']}")
         keyboard.button(text="❌ Yopish", callback_data="close")
         
@@ -239,12 +297,20 @@ async def show_my_apartments(message: types.Message):
 
 @router.callback_query(F.data.startswith("delete:"))
 async def delete_apartment(callback: types.CallbackQuery):
-    apartment_id = int(callback.data.split(":")[1])
-    
     try:
-        await db.delete_apartment(apartment_id)
-        await callback.message.edit_text("✅ E'lon o'chirildi!")
+        apartment_id = int(callback.data.split(":")[1])
+        result = await db.delete_apartment(apartment_id)
+        
+        if result:
+            await callback.message.delete()
+            await callback.message.answer("✅ E'lon muvaffaqiyatli o'chirildi!")
+        else:
+            await callback.message.answer("❌ E'lon topilmadi yoki allaqachon o'chirilgan")
+            
+    except ValueError:
+        await callback.message.answer("❌ Noto'g'ri e'lon identifikatori")
     except Exception as e:
+        print(f"O'chirish xatoligi: {e}")
         await callback.message.answer("❌ Xatolik yuz berdi. Qaytadan urinib ko'ring.")
     
     await callback.answer()
