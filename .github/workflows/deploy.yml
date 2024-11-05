@@ -33,7 +33,9 @@ jobs:
         username: ${{ secrets.USERNAME }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+          # ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
+
           if [ ! -d "/home/${{ secrets.PROJECT_NAME }}" ]; then
             git clone git@github.com:mehmonov/${{ secrets.PROJECT_NAME }}.git /home/${{ secrets.PROJECT_NAME }}
           else
@@ -45,4 +47,4 @@ jobs:
           source venv/bin/activate
           pip install -r requirements.txt
           sudo supervisorctl restart ijago_bot
- 
+  
