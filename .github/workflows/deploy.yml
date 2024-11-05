@@ -24,7 +24,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r /home/bot/requirements.txt
+        pip install -r /home/ijarago/bot/requirements.txt
 
     - name: Deploy to server
       uses: appleboy/ssh-action@master
@@ -40,7 +40,7 @@ jobs:
             cd /home/${{ secrets.PROJECT_NAME }}
             git pull origin master
           fi
-          cd /home/ijago/bot
+          cd /home/ijarago/bot
           python3 -m venv venv
           source venv/bin/activate
           pip install -r requirements.txt
