@@ -31,7 +31,7 @@ jobs:
       with:
         host: ${{ secrets.HOST }}
         username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.GITHUB_SSH_KEY }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           ssh-keyscan -H github.com >> ~/.ssh/known_hosts
           if [ ! -d "/home/${{ secrets.PROJECT_NAME }}" ]; then
