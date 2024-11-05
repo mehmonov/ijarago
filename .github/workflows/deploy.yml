@@ -1,10 +1,9 @@
-name: Deploy to Timeweb
+name: Deploy Telegram Bot to Server
 
 on:
   push:
     branches:
       - main
-      - master
   pull_request:
     types:
       - closed
@@ -14,7 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
     - name: Set up Python
       uses: actions/setup-python@v2
@@ -24,49 +24,24 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install wheel
-        pip install Cython
         pip install -r requirements.txt
 
     - name: Deploy to server
       uses: appleboy/ssh-action@master
       with:
-        host: 94.198.217.12
-        username: root
-        password: ${{ secrets.SSH_PASSWORD }}
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          eval $(ssh-agent -s)
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" | ssh-add -
           ssh-keyscan -H github.com >> ~/.ssh/known_hosts
-          cd /home
-          if [ ! -d "ijarago" ]; then
-            git clone git@github.com:mehmonov/ijarago.git
+          if [ ! -d "/home/${{ secrets.PROJECT_NAME }}" ]; then
+            git clone git@github.com:mehmonov/${{ secrets.PROJECT_NAME }}.git /home/${{ secrets.PROJECT_NAME }}
           else
-            cd /home/ijarago
-            git pull origin main
+            cd /home/${{ secrets.PROJECT_NAME }}
+            git pull origin master
           fi
-          cd /home/ijarago/bot
-          git fetch origin main
-          git reset --hard origin/main
+          cd /home/${{ secrets.PROJECT_NAME }}
           python3 -m venv venv
           source venv/bin/activate
-          pip install --upgrade pip
-          pip install wheel
-          pip install Cython
           pip install -r requirements.txt
-          echo '
-          pip install -r requirements.txt
-          '
-          # Setup and restart supervisor
-          echo '[program:ijarago]
-          directory=/home/ijarago/bot
-          command=/home/ijarago/bot/venv/bin/python main.py
-          autostart=true
-          autorestart=true
-          stderr_logfile=/var/log/ijarago.err.log
-          stdout_logfile=/var/log/ijarago.out.log
-          user=root' > /etc/supervisor/conf.d/ijarago.conf
-          supervisorctl reread
-          supervisorctl update
-          supervisorctl restart ijarago 
+          sudo supervisorctl restart ijago_bot
