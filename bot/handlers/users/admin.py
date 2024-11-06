@@ -9,18 +9,20 @@ from states.test import AdminState
 from filters.admin import IsBotAdminFilter
 from data.config import ADMINS
 from utils.pgtoexcel import export_to_excel
+import os
 
 router = Router()
 
 
 @router.message(Command('allusers'), IsBotAdminFilter(ADMINS))
 async def get_all_users(message: types.Message):
-    users = await db.select_all_users()
+    users = await db.get_all_users()
 
     file_path = f"data/users_list.xlsx"
     await export_to_excel(data=users, headings=['ID', 'Full Name', 'Username', 'Telegram ID'], filepath=file_path)
 
     await message.answer_document(types.input_file.FSInputFile(file_path))
+    os.remove(file_path)
 
 
 @router.message(Command('reklama'), IsBotAdminFilter(ADMINS))
@@ -31,8 +33,10 @@ async def ask_ad_content(message: types.Message, state: FSMContext):
 
 @router.message(AdminState.ask_ad_content, IsBotAdminFilter(ADMINS))
 async def send_ad_to_users(message: types.Message, state: FSMContext):
-    users = await db.select_all_users()
+    users = await db.get_all_users()
     count = 0
+    failed = 0
+    
     for user in users:
         user_id = user[-1]
         try:
@@ -40,8 +44,14 @@ async def send_ad_to_users(message: types.Message, state: FSMContext):
             count += 1
             await asyncio.sleep(0.05)
         except Exception as error:
-            logging.info(f"Ad did not send to user: {user_id}. Error: {error}")
-    await message.answer(text=f"Reklama {count} ta foydalauvchiga muvaffaqiyatli yuborildi.")
+            failed += 1
+            logging.error(f"Ad did not send to user: {user_id}. Error: {error}")
+    
+    await message.answer(
+        f"Reklama yuborish yakunlandi:\n"
+        f"✅ Muvaffaqiyatli: {count} ta\n"
+        f"❌ Muvaffaqiyatsiz: {failed} ta"
+    )
     await state.clear()
 
 
