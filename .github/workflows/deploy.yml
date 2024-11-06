@@ -53,7 +53,7 @@ jobs:
               GIT_SSH_COMMAND='ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no' git pull origin main
           fi
           
-          cd /home/ijarago
+          cd /home/ijarago/bot
           python3 -m venv venv
           source venv/bin/activate
           pip install -r requirements.txt
