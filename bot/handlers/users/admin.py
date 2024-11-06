@@ -38,7 +38,7 @@ async def send_ad_to_users(message: types.Message, state: FSMContext):
     failed = 0
     
     for user in users:
-        user_id = user[-1]
+        user_id = user['telegram_id']
         try:
             await message.send_copy(chat_id=user_id)
             count += 1
@@ -73,3 +73,21 @@ async def clean_db(call: types.CallbackQuery, state: FSMContext):
         text = "Bekor qilindi."
     await bot.edit_message_text(text=text, chat_id=call.message.chat.id, message_id=msg_id)
     await state.clear()
+
+
+@router.message(Command('stats'), IsBotAdminFilter(ADMINS))
+async def get_users_statistics(message: types.Message):
+    total_users = await db.get_users_count()
+    renters = await db.get_renters_count()
+    landlords = await db.get_landlords_count()
+    new_users = await db.get_users_count_last_week()
+    apartments = await db.get_apartments_count()
+
+    await message.answer(
+        f"📊 Bot statistikasi:\n\n"
+        f"👥 Jami foydalanuvchilar: {total_users}\n"
+        f"👤 Ijarachi (Renter)lar: {renters}\n"
+        f"🏠 Ijaraga beruvchi (Landlord)lar: {landlords}\n"
+        f"📈 Oxirgi 7 kundagi yangi a'zolar: {new_users}\n"
+        f"🏢 Jami e'lonlar soni: {apartments}"
+    )
