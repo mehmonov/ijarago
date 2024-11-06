@@ -34,18 +34,49 @@ jobs:
         password: ${{ secrets.PASSWORD }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
+          echo "=== SSH Keyscan natijasi ==="
           ssh-keyscan -H github.com >> ~/.ssh/known_hosts
-          # ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
-
-          if [ ! -d "/home/ijarago" ]; then
-            git clone git@github.com:mehmonov/ijarago.git /home/ijarago
-          else
-            cd /home/ijarago
-            git pull origin main
+          cat ~/.ssh/known_hosts
+          
+          echo "=== Host va SSH ma'lumotlari mavjudligini tekshirish ==="
+          if [ -n "${{ secrets.HOST }}" ]; then 
+              echo "HOST: ${{ secrets.HOST }}"; 
+          else 
+              echo "HOST mavjud emas"; 
           fi
-          # cd /home/ijarago
-          # python3 -m venv venv
-          # source venv/bin/activate
-          # # pip install -r requirements.txt
-          # sudo supervisorctl restart ijago_bot 
+          if [ -n "${{ secrets.USERNAME }}" ]; then 
+              echo "USERNAME: ${{ secrets.USERNAME }}"; 
+          else 
+              echo "USERNAME mavjud emas"; 
+          fi
+          if [ -n "${{ secrets.SSH_PRIVATE_KEY }}" ]; then 
+              echo "SSH_KEY mavjud"; 
+          else 
+              echo "SSH_KEY mavjud emas"; 
+          fi
+          
+          echo "=== /home papkasi tarkibi ==="
+          ls -la /home
+                    
+          echo "=== /home/ijarago papkasi mavjudligini tekshirish ==="
+          ls -la /home/ijarago
+
+          echo "=== ijarago papkasi mavjudligini tekshirish ==="
+          if [ ! -d "/home/ijarago" ]; then
+              echo "ijarago papkasi mavjud emas, clone qilinmoqda..."
+              git clone git@github.com:mehmonov/ijarago.git /home/ijarago
+          else
+              echo "ijarago papkasi mavjud, yangilanmoqda..."
+              cd /home/ijarago
+              git pull origin main
+          fi
+          
+          echo "=== /home/ijarago papkasi tarkibi ==="
+          cd /home/ijarago
+          ls -la
+          
+          python3 -m venv venv
+          source venv/bin/activate
+          # pip install -r requirements.txt
+          sudo supervisorctl restart ijago_bot
   
