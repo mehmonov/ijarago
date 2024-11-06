@@ -35,7 +35,6 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           echo "=== SSH kalitni sozlash ==="
-          rm -rf ~/.ssh
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
@@ -43,9 +42,6 @@ jobs:
           echo "=== SSH Keyscan natijasi ==="
           ssh-keyscan -H github.com >> ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
-          
-          echo "=== SSH kalitni test qilish ==="
-          ssh -T -o StrictHostKeyChecking=no git@github.com || true
           
           echo "=== ijarago papkasi mavjudligini tekshirish ==="
           if [ ! -d "/home/ijarago" ]; then
@@ -57,12 +53,9 @@ jobs:
               GIT_SSH_COMMAND='ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no' git pull origin main
           fi
           
-          echo "=== /home/ijarago papkasi tarkibi ==="
           cd /home/ijarago
-          ls -la
-          
           python3 -m venv venv
           source venv/bin/activate
-          # pip install -r requirements.txt
-          # sudo supervisorctl restart ijago_bot
+          pip install -r requirements.txt
+          sudo supervisorctl restart ijarago_bot
   
