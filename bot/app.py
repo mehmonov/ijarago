@@ -46,7 +46,7 @@ async def database_connected():
     await db.create_table_apartments()
     await db.create_table_apartment_photos()
     await db.create_table_saved_filters()
-
+    await db.create_table_start_history()
 async def aiogram_on_startup_polling(dispatcher: Dispatcher, bot: Bot) -> None:
     from utils.set_bot_commands import set_default_commands
     from utils.notify_admins import on_startup_notify
