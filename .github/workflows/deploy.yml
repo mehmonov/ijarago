@@ -35,49 +35,26 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           echo "=== SSH kalitni sozlash ==="
+          rm -rf ~/.ssh
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           
           echo "=== SSH Keyscan natijasi ==="
           ssh-keyscan -H github.com >> ~/.ssh/known_hosts
-          cat ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
           
-          echo "=== Git global konfiguratsiya ==="
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
+          echo "=== SSH kalitni test qilish ==="
+          ssh -T -o StrictHostKeyChecking=no git@github.com || true
           
-          echo "=== Host va SSH ma'lumotlari mavjudligini tekshirish ==="
-          if [ -n "${{ secrets.HOST }}" ]; then 
-              echo "HOST: ${{ secrets.HOST }}"; 
-          else 
-              echo "HOST mavjud emas"; 
-          fi
-          if [ -n "${{ secrets.USERNAME }}" ]; then 
-              echo "USERNAME: ${{ secrets.USERNAME }}"; 
-          else 
-              echo "USERNAME mavjud emas"; 
-          fi
-          if [ -n "${{ secrets.SSH_PRIVATE_KEY }}" ]; then 
-              echo "SSH_KEY mavjud"; 
-          else 
-              echo "SSH_KEY mavjud emas"; 
-          fi
-          
-          echo "=== /home papkasi tarkibi ==="
-          ls -la /home
-                    
-          echo "=== /home/ijarago papkasi mavjudligini tekshirish ==="
-          ls -la /home/ijarago
-
           echo "=== ijarago papkasi mavjudligini tekshirish ==="
           if [ ! -d "/home/ijarago" ]; then
               echo "ijarago papkasi mavjud emas, clone qilinmoqda..."
-              GIT_SSH_COMMAND='ssh -v' git clone git@github.com:mehmonov/ijarago.git /home/ijarago
+              GIT_SSH_COMMAND='ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no' git clone git@github.com:mehmonov/ijarago.git /home/ijarago
           else
               echo "ijarago papkasi mavjud, yangilanmoqda..."
               cd /home/ijarago
-              GIT_SSH_COMMAND='ssh -v' git pull origin main
+              GIT_SSH_COMMAND='ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no' git pull origin main
           fi
           
           echo "=== /home/ijarago papkasi tarkibi ==="
