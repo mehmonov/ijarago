@@ -19,6 +19,16 @@ router = Router()
 
 @router.message(CommandStart())
 async def do_start(message: types.Message, state: FSMContext):
+    # Start history ga saqlash
+    try:
+        await db.add_start_history(
+            telegram_id=message.from_user.id,
+            full_name=message.from_user.full_name,
+            username=message.from_user.username
+        )
+    except Exception as e:
+        print(f"Error saving start history: {e}")
+
     user = await db.get_user_by_telegram_id(message.from_user.id)
     
     if user:

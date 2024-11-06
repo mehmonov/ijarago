@@ -1,4 +1,6 @@
-class UserQueries:
+from ..base import Database
+
+class UserQueries(Database):
     async def create_table_users(self):
         sql = """
         CREATE TABLE IF NOT EXISTS Users (
@@ -13,7 +15,6 @@ class UserQueries:
         );
         """
         await self.execute(sql, execute=True)
-    
     async def add_user(self, telegram_id: int, full_name: str, username: str, user_type: str, phone: str, company: str = None):
         existing_user = await self.get_user_by_telegram_id(telegram_id)
         if existing_user:
@@ -68,7 +69,6 @@ class UserQueries:
     async def get_users_count_last_week(self):
         sql = "SELECT COUNT(*) FROM Users WHERE created_at >= NOW() - INTERVAL '7 days'"
         return await self.execute(sql, fetchval=True)
-    
     async def get_renters_count(self):
         sql = "SELECT COUNT(*) FROM Users WHERE user_type = 'renter'"
         return await self.execute(sql, fetchval=True)
@@ -85,30 +85,3 @@ class UserQueries:
         sql = "DELETE FROM Users"
         return await self.execute(sql, execute=True)
 
-    async def create_table_start_history(self):
-        sql = """
-        CREATE TABLE IF NOT EXISTS StartHistory (
-            id SERIAL PRIMARY KEY,
-            telegram_id BIGINT NOT NULL,
-            full_name VARCHAR(255),
-            username VARCHAR(255),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-        """
-        await self.execute(sql, execute=True)
-
-    async def add_start_history(self, telegram_id: int, full_name: str, username: str = None):
-        sql = """
-        INSERT INTO StartHistory (telegram_id, full_name, username)
-        VALUES ($1, $2, $3)
-        RETURNING *
-        """
-        return await self.execute(sql, telegram_id, full_name, username, fetchrow=True)
-
-    async def get_starts_count(self):
-        sql = "SELECT COUNT(*) FROM StartHistory"
-        return await self.execute(sql, fetchval=True)
-
-    async def get_starts_count_last_week(self):
-        sql = "SELECT COUNT(*) FROM StartHistory WHERE created_at >= NOW() - INTERVAL '7 days'"
-        return await self.execute(sql, fetchval=True)

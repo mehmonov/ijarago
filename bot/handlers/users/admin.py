@@ -80,14 +80,16 @@ async def get_users_statistics(message: types.Message):
     total_users = await db.get_users_count()
     renters = await db.get_renters_count()
     landlords = await db.get_landlords_count()
+    starts = await db.get_starts_count()
     new_users = await db.get_users_count_last_week()
     apartments = await db.get_apartments_count()
 
     await message.answer(
         f"📊 Bot statistikasi:\n\n"
         f"👥 Jami foydalanuvchilar: {total_users}\n"
+        f"👥 Botga kirganlar soni: {starts}\n"
+        f"👥 Oxirgi 7 kundagi yangi a'zolar: {new_users}\n"
         f"👤 Ijarachi (Renter)lar: {renters}\n"
         f"🏠 Ijaraga beruvchi (Landlord)lar: {landlords}\n"
-        f"📈 Oxirgi 7 kundagi yangi a'zolar: {new_users}\n"
         f"🏢 Jami e'lonlar soni: {apartments}"
     )
