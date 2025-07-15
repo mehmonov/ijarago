@@ -34,26 +34,9 @@ jobs:
         password: ${{ secrets.PASSWORD }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          echo "=== SSH kalitni sozlash ==="
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
+         
           
-          echo "=== SSH Keyscan natijasi ==="
-          ssh-keyscan -H github.com >> ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
-          
-          echo "=== ijarago papkasi mavjudligini tekshirish ==="
-          if [ ! -d "/home/ijarago" ]; then
-              echo "ijarago papkasi mavjud emas, clone qilinmoqda..."
-              GIT_SSH_COMMAND='ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no' git clone git@github.com:mehmonov/ijarago.git /home/ijarago
-          else
-              echo "ijarago papkasi mavjud, yangilanmoqda..."
-              cd /home/ijarago
-              GIT_SSH_COMMAND='ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no' git pull origin main
-          fi
-          
-          cd /home/ijarago/bot
+          cd /home/botlar/ijarago/bot
           python3 -m venv venv
           source venv/bin/activate
           pip install -r requirements.txt
