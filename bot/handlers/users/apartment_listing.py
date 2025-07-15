@@ -16,7 +16,7 @@ class ApartmentListing(StatesGroup):
     select_district = State()
     viewing = State()
 
-ITEMS_PER_PAGE = 1  # Har bir sahifada ko'rsatiladigan kvartiralar soni
+ITEMS_PER_PAGE = 5  # Har bir sahifada ko'rsatiladigan kvartiralar soni
 
 def create_apartment_keyboard(apartment_id: int):
     builder = InlineKeyboardBuilder()
@@ -76,7 +76,7 @@ async def show_district_apartments(message: types.Message, state: FSMContext):
     await show_page(message, state)
     await state.set_state(ApartmentListing.viewing)
 
-async def show_page(message: types.Message, state: FSMContext):
+async def show_page(message: types.Message, state: FSMContext, edit_message: bool = False):
     data = await state.get_data()
     current_page = data['current_page']
     total_pages = data['total_pages']
@@ -88,11 +88,16 @@ async def show_page(message: types.Message, state: FSMContext):
     page_apartments = apartments[start_idx:end_idx]
     
     # Sahifa haqida ma'lumot
-    await message.answer(
-        f"📋 {data['district']} tumani, {current_page}-sahifa\n"
-        f"Jami: {len(apartments)} ta e'lon",
-        reply_markup=main_renter_keyboard
+    info_text = (
+        f"📋 {data['district']} tumani, {current_page}-sahifa
+"
+        f"Jami: {len(apartments)} ta e'lon"
     )
+    
+    if edit_message:
+        await message.edit_text(info_text, reply_markup=main_renter_keyboard)
+    else:
+        await message.answer(info_text, reply_markup=main_renter_keyboard)
     
     for apartment in page_apartments:
         photos = await db.get_apartment_photos(apartment['id'])
@@ -136,9 +141,7 @@ async def prev_page(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     if data['current_page'] > 1:
         await state.update_data(current_page=data['current_page'] - 1)
-        # Eski xabarlarni o'chirish
-        await callback.message.delete()
-        await show_page(callback.message, state)
+        await show_page(callback.message, state, edit_message=True)
     await callback.answer()
 
 @router.callback_query(F.data == "next_page")
@@ -146,9 +149,7 @@ async def next_page(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     if data['current_page'] < data['total_pages']:
         await state.update_data(current_page=data['current_page'] + 1)
-        # Eski xabarlarni o'chirish
-        await callback.message.delete()
-        await show_page(callback.message, state)
+        await show_page(callback.message, state, edit_message=True)
     await callback.answer()
 
 @router.callback_query(F.data == "close")

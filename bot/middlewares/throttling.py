@@ -8,6 +8,7 @@ class ThrottlingMiddleware(BaseMiddleware):
     def __init__(self, slow_mode_delay=0.5):
         self.user_timeouts = {}
         self.slow_mode_delay = slow_mode_delay
+        self.last_notified = {}
         super(ThrottlingMiddleware, self).__init__()
 
     async def __call__(self, handler, event: Message, data):
@@ -18,7 +19,9 @@ class ThrottlingMiddleware(BaseMiddleware):
         last_request_time = self.user_timeouts.get(user_id, 0)
         if current_time - last_request_time < self.slow_mode_delay:
             # Agar so'rovlar juda tez-tez bo'lsa, sekin rejimni yoqish
-            await event.reply("Juda ko'p so'rov! Biroz kuting.")
+            if current_time - self.last_notified.get(user_id, 0) > self.slow_mode_delay * 2: # Faqat ma'lum vaqtdan keyin xabar yuborish
+                await event.reply("Juda ko'p so'rov! Biroz kuting.")
+                self.last_notified[user_id] = current_time
             return
         
         else:

@@ -154,11 +154,11 @@ async def process_photo(message: types.Message, state: FSMContext):
     await state.update_data(photos=photos)
     
     # Yuklangan rasmlar sonini ko'rsatish
-    await message.answer(
-        f"✅ {len(photos)} ta rasm yuklandi.\n"
-        "Yana rasm yuborishingiz yoki '✅ Yakunlash' tugmasini bosishingiz mumkin.",
-        reply_markup=confirm_keyboard
-    )
+    # await message.answer(
+    #     f"✅ {len(photos)} ta rasm yuklandi.\n"
+    #     "Yana rasm yuborishingiz yoki '✅ Yakunlash' tugmasini bosishingiz mumkin.",
+    #     reply_markup=confirm_keyboard
+    # )
 
 @router.message(AddApartment.photos, F.text == "✅ Yakunlash")
 async def finish_adding_photos(message: types.Message, state: FSMContext):
@@ -214,18 +214,12 @@ async def finish_adding_photos(message: types.Message, state: FSMContext):
                 for filter in similar_filters:
                     try:
                         notification_text = (
-                            "🏠 Sizning filteringizga mos eng yaxshi kvartira topildi!\n\n"
+                            "🏠 Sizning filteringizga mos yangi kvartira topildi!\n\n"
                             f"Siz qidirgan parametrlar:\n"
                             f"📍 Tuman: {filter['district']}\n"
                             f"🏠 Xonalar: {filter['min_rooms']}\n"
                             f"💰 Narx oralig'i: ${filter['min_price']:,} - ${filter['max_price']:,}\n\n"
-                            f"Tavsiya etilgan kvartira:\n"
-                            f"💰 Narxi: ${best_apartment['price']:,}\n"
-                            f"📍 Manzil: {best_apartment['district']}, {best_apartment['address']}\n"
-                            f"🏠 {best_apartment['rooms']} xona, {best_apartment['area']} m²\n"
-                            f"🏢 Qavat: {best_apartment['floor']}/{best_apartment['total_floors']}\n"
-                            f"🪑 Mebel: {'Bor' if best_apartment['has_furniture'] else 'Yoq'}\n\n"
-                            f"📝 Tavsif: {best_apartment.get('description', '')}"
+                            "Batafsil ma'lumot va bog'lanish uchun quyidagi tugmalarni bosing:"
                         )
                         
                         if media:

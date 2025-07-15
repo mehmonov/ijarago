@@ -10,10 +10,10 @@ from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
 
-from utils.db.queries.users import UserQueries
-from utils.db.queries.apartments import ApartmentQueries
-from utils.db.queries.photos import PhotoQueries
-from utils.db.queries.filters import FilterQueries
+from utils.db.models.users import UserQueries
+from utils.db.models.apartments import ApartmentQueries
+from utils.db.models.photos import PhotoQueries
+from utils.db.models.filters import FilterQueries
 
 app = FastAPI()
 
@@ -152,7 +152,7 @@ async def update_apartment_status(apartment_id: int, is_available: bool):
 
 @app.delete("/apartments/{apartment_id}")
 async def delete_apartment(apartment_id: int):
-    result = await apartment_db.delete_apartment(apartment_id)
+    result = await db.delete_apartment(apartment_id)
     if not result:
         raise HTTPException(status_code=404, detail="Apartment not found")
     return {"message": "Apartment deleted successfully"}
