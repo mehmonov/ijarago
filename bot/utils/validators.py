@@ -27,6 +27,8 @@ def validate_rooms(rooms: str) -> Union[int, bool]:
         return rooms
     except ValueError:
         return False
+    except Exception:
+        return False
 
 def validate_floor(floor: str, total_floors: int = None) -> Union[int, bool]:
     try:
