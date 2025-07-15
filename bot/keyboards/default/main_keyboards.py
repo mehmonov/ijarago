@@ -1,6 +1,7 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 
 
+main_menu_button = KeyboardButton(text="🏠 Asosiy Menyu")
 
 
 def get_district_keyboard() -> ReplyKeyboardMarkup:
@@ -14,6 +15,7 @@ def get_district_keyboard() -> ReplyKeyboardMarkup:
     for i in range(0, len(districts), 3):
         row = districts[i:i+3]
         keyboard.append([KeyboardButton(text=district) for district in row])
+    keyboard.append([main_menu_button])
     
     return ReplyKeyboardMarkup(
         keyboard=keyboard,
@@ -30,7 +32,8 @@ user_type_keyboard = InlineKeyboardMarkup(
 
 phone_number_keyboard = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="📱 Telefon raqamni yuborish", request_contact=True)]
+        [KeyboardButton(text="📱 Telefon raqamni yuborish", request_contact=True)],
+        [main_menu_button]
     ],
     resize_keyboard=True
 )
@@ -44,7 +47,8 @@ main_renter_keyboard = ReplyKeyboardMarkup(
         [
             KeyboardButton(text="⭐️ Saqlangan filterlar"),
             KeyboardButton(text="👤 Profil")
-        ]
+        ],
+        [main_menu_button]
     ],
     resize_keyboard=True
 )
@@ -57,7 +61,8 @@ main_landlord_keyboard = ReplyKeyboardMarkup(
         ],
         [
             KeyboardButton(text="👤 Profil")
-        ]
+        ],
+        [main_menu_button]
     ],
     resize_keyboard=True
 )
@@ -67,7 +72,8 @@ furniture_keyboard = ReplyKeyboardMarkup(
         [
             KeyboardButton(text="✅ Ha"),
             KeyboardButton(text="❌ Yo'q")
-        ]
+        ],
+        [main_menu_button]
     ],
     resize_keyboard=True,
     one_time_keyboard=True
@@ -75,7 +81,8 @@ furniture_keyboard = ReplyKeyboardMarkup(
 
 confirm_keyboard = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="✅ Yakunlash")]
+        [KeyboardButton(text="✅ Yakunlash")],
+        [main_menu_button]
     ],
     resize_keyboard=True
 )
@@ -89,7 +96,8 @@ profile_keyboard = ReplyKeyboardMarkup(
         ],
         [
             KeyboardButton(text="⬅️ Orqaga")
-        ]
+        ],
+        [main_menu_button]
     ],
     resize_keyboard=True
 )

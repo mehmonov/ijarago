@@ -1,10 +1,8 @@
 from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
-from aiogram.exceptions import TelegramBadRequest
 from loader import db, bot
 from utils.validators import validate_price, validate_rooms, validate_floor
 from states.user_states import AddApartment
-from utils.apartment_utils import select_best_apartment
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from keyboards.default.main_keyboards import (
@@ -15,6 +13,7 @@ from keyboards.default.main_keyboards import (
 )
 
 from .apartment_listing import format_apartment_info
+from utils.apartment_notifications import send_apartment_match_notifications
 router = Router()
 
 @router.message(F.text == "➕ Kvartira qo'shish")
@@ -186,57 +185,8 @@ async def finish_adding_photos(message: types.Message, state: FSMContext):
         for photo_id in data['photos']:
             await db.add_apartment_photo(apartment['id'], photo_id)
         
-        # O'xshash kvartiralarni topish va taqqoslash
-        similar_apartments = await db.get_similar_apartments(
-            district=data['district'],
-            rooms=data['rooms'],
-            price_range=(float(data['price']) * 0.8, float(data['price']) * 1.2)  # ±20% narx oralig'i
-        )
-        
-        # Eng yaxshi kvartira tanlash
-        best_apartment = await select_best_apartment(similar_apartments)
-        
-        # O'xshash filterlarga ega foydalanuvchilarni topish
-        similar_filters = await db.find_similar_filters(
-            district=data['district'],
-            min_rooms=data['rooms'],
-            min_price=data['price'],
-            max_price=data['price']
-        )
-        
-        if similar_filters and best_apartment:
-            media = []
-            photos = await db.get_apartment_photos(best_apartment['id'])
-            if photos:
-                for photo in photos:
-                    media.append(types.InputMediaPhoto(media=photo['photo_file_id']))
-                
-                for filter in similar_filters:
-                    try:
-                        notification_text = (
-                            "🏠 Sizning filteringizga mos yangi kvartira topildi!\n\n"
-                            f"Siz qidirgan parametrlar:\n"
-                            f"📍 Tuman: {filter['district']}\n"
-                            f"🏠 Xonalar: {filter['min_rooms']}\n"
-                            f"💰 Narx oralig'i: ${filter['min_price']:,} - ${filter['max_price']:,}\n\n"
-                            "Batafsil ma'lumot va bog'lanish uchun quyidagi tugmalarni bosing:"
-                        )
-                        
-                        if media:
-                            await bot.send_media_group(filter['telegram_id'], media=media)
-                        
-                        keyboard = InlineKeyboardBuilder()
-                        keyboard.button(text="📞 Bog'lanish", callback_data=f"contact:{best_apartment['id']}")
-                        keyboard.button(text="📍 Lokatsiya", callback_data=f"location:{best_apartment['id']}")
-                        
-                        await bot.send_message(
-                            filter['telegram_id'],
-                            notification_text,
-                            reply_markup=keyboard.as_markup(),
-                            parse_mode="HTML"
-                        )
-                    except Exception as e:
-                        print(f"Xabar yuborishda xatolik: {e}")
+        # Send notifications to matching filters
+        await send_apartment_match_notifications(apartment)
         
         await message.answer(
             "✅ Kvartira muvaffaqiyatli qo'shildi!",

@@ -8,6 +8,7 @@ class FilterQueries:
         min_price DECIMAL NOT NULL,
         max_price DECIMAL NOT NULL,
         min_rooms SMALLINT NOT NULL,
+        last_notified_apartment_id INT DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         """
@@ -16,11 +17,11 @@ class FilterQueries:
     async def save_filter(self, user_id: int, district: str, min_price: int, 
                          max_price: int, min_rooms: int):
         sql = """
-        INSERT INTO SavedFilters (user_id, district, min_price, max_price, min_rooms)
-        VALUES ($1, $2, $3, $4, $5) RETURNING *
+        INSERT INTO SavedFilters (user_id, district, min_price, max_price, min_rooms, last_notified_apartment_id)
+        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *
         """
         return await self.execute(sql, user_id, district, min_price, max_price, 
-                                min_rooms, fetchrow=True)
+                                min_rooms, 0, fetchrow=True)
 
     async def get_user_filters(self, user_id: int):
         sql = """
@@ -40,6 +41,14 @@ class FilterQueries:
         WHERE id = $1
         """
         return await self.execute(sql, filter_id, fetchrow=True)
+
+    async def update_last_notified_apartment_id(self, filter_id: int, apartment_id: int):
+        sql = """
+        UPDATE SavedFilters
+        SET last_notified_apartment_id = $2
+        WHERE id = $1
+        """
+        return await self.execute(sql, filter_id, apartment_id, execute=True)
 
     async def find_similar_filters(self, district: str, min_rooms: int, min_price: float, max_price: float, current_filter_id: int = None):
         sql = """

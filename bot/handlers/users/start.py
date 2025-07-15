@@ -50,6 +50,22 @@ async def do_start(message: types.Message, state: FSMContext):
     )
     await state.set_state(UserRegistration.select_type)
 
+@router.message(F.text == "🏠 Asosiy Menyu")
+async def go_to_main_menu(message: types.Message, state: FSMContext):
+    await state.clear()
+    user = await db.get_user_by_telegram_id(message.from_user.id)
+    if not user:
+        await message.answer(
+            "Assalomu alaykum! Botimizga xush kelibsiz!\n"
+            "Iltimos, o'zingizga mos variantni tanlang:",
+            reply_markup=user_type_keyboard
+        )
+        await state.set_state(UserRegistration.select_type)
+        return
+    
+    keyboard = main_renter_keyboard if user['user_type'] == 'renter' else main_landlord_keyboard
+    await message.answer("Asosiy menyu:", reply_markup=keyboard)
+
 @router.callback_query(F.data.startswith("type:"))
 async def process_user_type(callback: types.CallbackQuery, state: FSMContext):
     user_type = callback.data.split(":")[1]
@@ -285,7 +301,7 @@ async def process_role_change(callback: types.CallbackQuery, state: FSMContext):
     
     await callback.answer()
 
-@router.message(F.text == "⬅️ Orqaga")
+@router.message(F.text.in_(["⬅️ Orqaga", "🏠 Asosiy Menyu"]))
 async def go_back_to_main(message: types.Message):
     user = await db.get_user_by_telegram_id(message.from_user.id)
     if not user:
