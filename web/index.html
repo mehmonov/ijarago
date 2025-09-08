@@ -325,17 +325,14 @@
                 }
             });
 
-            // Android ilovasini yuklab olish uchun
             document
                 .querySelector('a[href="ijarago_v_1_0.apk"]')
                 .addEventListener("click", function (e) {
-                    // Yuklab olish tugmasi bosilganda notification ko'rsatish
                     setTimeout(() => {
                         showDownloadNotification();
                     }, 1000);
                 });
 
-            // Notification banner funksiyalari
             function showDownloadNotification() {
                 const notification = document.getElementById(
                     "downloadNotification",
@@ -343,7 +340,6 @@
                 notification.classList.remove("hidden");
                 notification.classList.add("animate-pulse");
 
-                // 5 soniyadan keyin avtomatik yashirish
                 setTimeout(() => {
                     closeNotification();
                 }, 5000);
