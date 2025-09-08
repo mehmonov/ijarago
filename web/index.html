@@ -21,6 +21,14 @@
             .gradient-bg {
                 background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
             }
+            /* Logo hover effects */
+            .logo-hover {
+                transition: all 0.3s ease-in-out;
+            }
+            .logo-hover:hover {
+                transform: scale(1.1) rotate(5deg);
+                filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+            }
             /* Mobile menu styles */
             @media (max-width: 768px) {
                 .mobile-menu {
@@ -80,10 +88,12 @@
         >
             <div class="container mx-auto px-4 py-4">
                 <div class="flex justify-between items-center">
-                    <div
-                        class="text-2xl font-bold gradient-bg text-transparent bg-clip-text"
-                    >
-                        <img src="./logo.png" alt="">
+                    <div class="flex items-center space-x-3">
+                        <img
+                            src="logo.png"
+                            alt="Ijarago Logo"
+                            class="w-8 h-8 md:w-10 md:h-10 logo-hover cursor-pointer"
+                        />
                     </div>
                     <button
                         id="menuBtn"
@@ -278,10 +288,12 @@
                 <div
                     class="flex flex-col md:flex-row justify-between items-center"
                 >
-                    <div
-                        class="text-3xl font-bold mb-6 md:mb-0 gradient-bg text-transparent bg-clip-text"
-                    >
-                        Ijarago
+                    <div class="flex items-center space-x-3 mb-6 md:mb-0">
+                        <img
+                            src="logo.png"
+                            alt="Ijarago Logo"
+                            class="w-10 h-10 md:w-12 md:h-12 logo-hover cursor-pointer"
+                        />
                     </div>
                     <div class="flex space-x-8">
                         <a
