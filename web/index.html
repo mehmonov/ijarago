@@ -403,6 +403,15 @@
                 notification.classList.add("hidden");
                 notification.classList.remove("animate-pulse");
             }
+
+            document.querySelectorAll(".logo-hover").forEach((logo) => {
+                logo.addEventListener("click", function () {
+                    window.scrollTo({
+                        top: 0,
+                        behavior: "smooth",
+                    });
+                });
+            });
         </script>
     </body>
 </html>
